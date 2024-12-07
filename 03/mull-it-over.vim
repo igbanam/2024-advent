@@ -1,7 +1,7 @@
 vim9script
 
 import "../00/solution.vim"
-import "../00/utils.vim"
+import "../00/utils/enumerable.vim"
 
 var shouldAdd = true
 
@@ -47,7 +47,7 @@ class MullItOver extends solution.AbstractSolution
     return this.input
       ->mapnew(this.ExtractConditionalNumbers)
       ->map((_, v) => v->reduce((a, e) => a + (e[0] * e[1]), 0))
-      ->utils.Sum()
+      ->enumerable.Sum()
   enddef
 endclass
 
