@@ -15,6 +15,12 @@ export def Visualize(grid: list<list<any>>)
   endfor
 enddef
 
+export const directions = [
+  [0, 1],
+  [0, -1],
+  [1, 0],
+  [-1, 0]
+]
 
 export class AbstractPoint
   public var x: number
