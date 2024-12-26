@@ -25,4 +25,35 @@ export def Contains(haystack: list<any>, needle: any): bool
   return haystack->index(needle) != -1
 enddef
 
+export def Transpose2D(matrix: list<list<any>>): list<list<any>>
+  var result: list<list<any>>
+  result = matrix[0]
+    ->len()
+    ->range()
+    ->map((_, _) => []->repeat(matrix->len()))
+  for i in matrix->len()->range()
+    for j in matrix[0]->len()->range()
+      result[j][i] = matrix[i][j]
+    endfor
+  endfor
+  return result
+enddef
+
+export def Product(lols: list<list<any>>): list<list<any>>
+  if lols->empty()
+    return []
+  endif
+  var result = [[]]
+  for lol in lols
+    var tmp = []
+    for x in result
+      for y in lol
+        tmp->add(x + [y])
+      endfor
+    endfor
+    result = tmp
+  endfor
+  return result
+enddef
+
 defcompile
