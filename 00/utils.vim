@@ -102,4 +102,194 @@ export def BFS(
   return [] # No path found
 enddef
 
+def GetNeighbors(grid: list<list<any>>, node: list<number>, wall: any): list<list<number>>
+  var neighbors = []
+  var dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+  for dir in dirs
+    var newX = node[0] + dir[0]
+    var newY = node[1] + dir[1]
+    if newX >= 0 && newX < len(grid) && newY >= 0 && newY < grid[0]->len()
+      if grid[newX][newY] != wall  # Not a wall
+        neighbors->add([newX, newY])
+      endif
+    endif
+  endfor
+  return neighbors
+enddef
+
+def Manhattan(a: list<number>, b: list<number>): number
+  return (a[0] - b[0]) + abs(a[1] - b[1])->abs()
+enddef
+
+export def AStar(grid: list<list<any>>, start: list<number>, goal: list<number>, wall: any): list<list<number>>
+  var openSet = [[start, 0]]
+  var cameFrom = {}
+  var gScore = {}
+  var fScore = {}
+
+  gScore[start->string()] = 0
+  fScore[start->string()] = Manhattan(start, goal)
+
+  while !openSet->empty()
+    openSet->sort((a, b) => a[1] - b[1])
+    var current = openSet[0][0]
+    if current == goal
+      var path = [current]
+      var currentKey = current->string()
+      while cameFrom->has_key(currentKey)
+        current = cameFrom[currentKey]
+        currentKey = current->string()
+        path->insert(current, 0)
+      endwhile
+      return path
+    endif
+
+    openSet->remove(0)
+    var currentKey = current->string()
+
+    for neighbor in grid->GetNeighbors(current, wall)
+      var neighborKey = neighbor->string()
+      var tentativeGScore = gScore[currentKey] + 1
+
+      if !gScore->has_key(neighborKey) || tentativeGScore < gScore[neighborKey]
+        cameFrom[neighborKey] = current
+        gScore[neighborKey] = tentativeGScore
+        fScore[neighborKey] = tentativeGScore + Manhattan(neighbor, goal)
+        var found = false
+        for node in openSet
+          if node[0] == neighbor
+            found = true
+            break
+          endif
+        endfor
+        if !found
+          openSet->add([neighbor, fScore[neighborKey]])
+        endif
+      endif
+    endfor
+  endwhile
+
+  return []  # No path found
+enddef
+
+def BuildPath(current: list<number>, cameFrom: dict<list<list<number>>>): list<list<list<number>>>
+    if cameFrom[current->string()]->empty()
+        return [[current]]
+    endif
+
+    var paths = []
+    for prev in cameFrom[current->string()]
+        for subpath in BuildPath(prev, cameFrom)
+            subpath->add(current)
+            paths->add(subpath)
+        endfor
+    endfor
+    return paths
+enddef
+
+export def FindAllPaths(grid: list<list<any>>, start: list<number>, goal: list<number>, wall: string): list<list<list<number>>>
+    var paths = []
+    var stack = [[start]]
+    var visited_paths = {}
+
+    while !stack->empty()
+        var current_path = stack[-1]->deepcopy()
+        stack->remove(-1)
+        var current = current_path[-1]
+
+        if current == goal
+            paths->add(current_path)
+            continue
+        endif
+
+        var path_visited = {}
+        for point in current_path
+            path_visited[point->string()] = true
+        endfor
+
+        for neighbor in grid->GetNeighbors(current, wall)
+            var neighborKey = neighbor->string()
+            # Only avoid revisiting points in current path
+            if !path_visited->has_key(neighborKey)
+                var new_path = current_path->deepcopy()
+                new_path->add(neighbor)
+                var path_key = new_path->string()
+                if !visited_paths->has_key(path_key)
+                    visited_paths[path_key] = true
+                    stack->add(new_path)
+                endif
+            endif
+        endfor
+    endwhile
+
+    return paths
+enddef
+
+const UP = 0
+const RIGHT = 1
+const DOWN = 2
+const LEFT = 3
+
+def GetRotationCost(current_dir: number, next_dir: number): number
+    if current_dir == next_dir
+        return 0
+    endif
+    # Calculate minimum rotations needed (clockwise or counterclockwise)
+    var diff = (current_dir - next_dir)->abs()
+    return [diff, 4 - diff]->min() * 1000
+enddef
+
+def GetDirection(from: list<number>, to: list<number>): number
+    if from[0] < to[0]
+        return DOWN
+    elseif from[0] > to[0]
+        return UP
+    elseif from[1] < to[1]
+        return RIGHT
+    else
+        return LEFT
+    endif
+enddef
+
+export def FindCheapestPath(grid: list<list<string>>, start: list<number>, goal: list<number>, wall: string): dict<any>
+    var pq = []  # Priority queue: [cost, pos, direction, path]
+    var visited = {}
+
+    # Initialize with all 4 directions
+    for dir in 4->range()
+        pq->add([0, start, dir, [start]])
+    endfor
+
+    while !pq->empty()
+        # Sort by cost (maintain priority queue)
+        pq->sort((a, b) => a[0] - b[0])
+        var [current_cost, current_pos, current_dir, current_path] = pq[0]
+        pq->remove(0)
+
+        if current_pos == goal
+            return {'cost': current_cost, 'path': current_path, 'final_dir': current_dir}
+        endif
+
+        var state_key = [current_pos, current_dir]->string()
+        if visited->has_key(state_key)
+            continue
+        endif
+        visited[state_key] = true
+
+        for neighbor in grid->GetNeighbors(current_pos, wall)
+            var next_dir = current_pos->GetDirection(neighbor)
+            var rotation_cost = current_dir->GetRotationCost(next_dir)
+            var step_cost = 1  # Basic movement cost
+            var new_cost = current_cost + rotation_cost + step_cost
+
+            var next_path = current_path->deepcopy()
+            next_path->add(neighbor)
+
+            pq->add([new_cost, neighbor, next_dir, next_path])
+        endfor
+    endwhile
+
+    return {'cost': -1, 'path': [], 'final_dir': -1}  # No path found
+enddef
+
 defcompile
